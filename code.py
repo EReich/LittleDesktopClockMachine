@@ -15,42 +15,60 @@ from adafruit_is31fl3731.matrix import Matrix as Display
 # from adafruit_is31fl3731.matrix_11x7 import Matrix11x7 as Display
 
 # uncomment this line if you use a Pico, here with SCL=GP21 and SDA=GP20.
-i2c = busio.I2C(board.GP19, board.GP18)
+I2C1 = busio.I2C(board.GP19, board.GP18)
 
 #i2c = busio.I2C(board.GP19, board.GP18)
 
-display = Display(i2c)
+# Four matrices on each bus, for a total of eight...
+DISPLAY = [
+    Display(I2C1, address=0x74, frames=(0, 1)),  # Upper row
+    Display(I2C1, address=0x75, frames=(0, 1)),
+    Display(I2C1, address=0x76, frames=(0, 1)),
+    Display(I2C1, address=0x77, frames=(0, 1)),
+    #Display(I2C[1], address=0x74, frames=(0, 1)),  # Lower row
+    #Display(I2C[1], address=0x75, frames=(0, 1)),
+    #Display(I2C[1], address=0x76, frames=(0, 1)),
+    #Display(I2C[1], address=0x77, frames=(0, 1)),
+]
 
-text_to_show = "1"
+text = ["4", "2", "3", "4"]
 
 # Create a framebuffer for our display
 buf = bytearray(32)  # 2 bytes tall x 16 wide = 32 bytes (9 bits is 2 bytes)
 fb = adafruit_framebuf.FrameBuffer(
-    buf, display.width, display.height, adafruit_framebuf.MVLSB
+    buf, DISPLAY[1].width, DISPLAY[1].height, adafruit_framebuf.MVLSB
 )
 
 
 frame = 0  # start with frame 0
 while True:
-    for i in range(len(text_to_show) * 16):
+    for disp in DISPLAY:
         fb.fill(0)
-        fb.text(text_to_show, 0, 0, color=1)
+        if(disp == DISPLAY[0]):
+            text_to_show = text[0]
+        elif(disp == DISPLAY[1]):
+            text_to_show = text[1]
+        elif(disp == DISPLAY[2]):
+            text_to_show = text[2]
+        elif(disp == DISPLAY[3]):
+            text_to_show = text[3]
+        fb.text(text_to_show, 5, 0, color=1)
 
         # to improve the display flicker we can use two frame
         # fill the next frame with scrolling text, then
         # show it.
-        display.frame(frame, show=False)
+        disp.frame(frame, show=False)
         # turn all LEDs off
-        display.fill(0)
-        for x in range(display.height):
+        disp.fill(0)
+        for x in range(disp.width):
             # using the FrameBuffer text result
             bite = buf[x]
-            for y in range(display.width):
+            for y in range(disp.height):
                 bit = 1 << y & bite
                 # if bit > 0 then set the pixel brightness
                 if bit:
-                    display.pixel(x, y, 50)
-
+                    disp.pixel(x, y, 50)
+    for disp in DISPLAY:
         # now that the frame is filled, show it.
-        display.frame(frame, show=True)
-        frame = 0 if frame else 1
+        disp.frame(frame, show=True)
+    frame = 0 if frame else 1
