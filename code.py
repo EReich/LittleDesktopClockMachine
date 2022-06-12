@@ -17,6 +17,7 @@ from adafruit_is31fl3731.matrix import Matrix as Display
 
 # uncomment this line if you use a Pico, here with SCL=GP21 and SDA=GP20.
 I2C1 = busio.I2C(board.GP19, board.GP18)
+I2C2 = busio.I2C(board.GP17, board.GP16)
 
 #i2c = busio.I2C(board.GP19, board.GP18)
 
@@ -26,13 +27,13 @@ DISPLAY = [
     Display(I2C1, address=0x75, frames=(0, 1)),
     Display(I2C1, address=0x76, frames=(0, 1)),
     Display(I2C1, address=0x77, frames=(0, 1)),
-    #Display(I2C[1], address=0x74, frames=(0, 1)),  # Lower row
-    #Display(I2C[1], address=0x75, frames=(0, 1)),
-    #Display(I2C[1], address=0x76, frames=(0, 1)),
-    #Display(I2C[1], address=0x77, frames=(0, 1)),
+    Display(I2C2, address=0x74, frames=(0, 1)),  # Lower row
+    Display(I2C2, address=0x75, frames=(0, 1)),
+    Display(I2C2, address=0x76, frames=(0, 1)),
+    Display(I2C2, address=0x77, frames=(0, 1)),
 ]
 
-text = ["12", "25", "JUN", "08"]
+text = ["1", "2", "2","5","J","N", "1", "2"]
 
 # Create a framebuffer for our display
 buf = bytearray(32)  # 2 bytes tall x 16 wide = 32 bytes (9 bits is 2 bytes)
@@ -40,6 +41,7 @@ fb = adafruit_framebuf.FrameBuffer(
     buf, DISPLAY[1].width, DISPLAY[1].height, adafruit_framebuf.MVLSB
 )
 
+fb.rotation = 3
 
 frame = 0  # start with frame 0
 while True:
@@ -47,17 +49,29 @@ while True:
         fb.fill(0)
         if(disp == DISPLAY[0]):
             text_to_show = text[0]
-            xpos = 3
+            xpos = 2
         elif(disp == DISPLAY[1]):
             text_to_show = text[1]
-            xpos = 3
+            xpos = 2
         elif(disp == DISPLAY[2]):
             text_to_show = text[2]
-            xpos = 0
+            xpos = 2
         elif(disp == DISPLAY[3]):
             text_to_show = text[3]
-            xpos = 3
-        fb.text(text_to_show, xpos, 0, color=1)
+            xpos = 2
+        elif(disp == DISPLAY[4]):
+            text_to_show = text[4]
+            xpos = 2
+        elif(disp == DISPLAY[5]):
+            text_to_show = text[5]
+            xpos = 2
+        elif(disp == DISPLAY[6]):
+            text_to_show = text[6]
+            xpos = 2
+        elif(disp == DISPLAY[7]):
+            text_to_show = text[7]
+            xpos = 2
+        fb.text(text_to_show, xpos, 4, color=1)
 
         # to improve the display flicker we can use two frame
         # fill the next frame with scrolling text, then
@@ -73,6 +87,8 @@ while True:
                 # if bit > 0 then set the pixel brightness
                 if bit:
                     disp.pixel(x, y, 50)
+                    
+                    
     for disp in DISPLAY:
         # now that the frame is filled, show it.
         disp.frame(frame, show=True)
