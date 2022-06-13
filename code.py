@@ -1,5 +1,6 @@
 import board
 import busio
+from digitalio import DigitalInOut, Direction, Pull
 import adafruit_framebuf
 import pyRTOS
 import rtc
@@ -7,25 +8,29 @@ import time
 
 
 c = rtc.RTC()
-c.datetime = time.struct_time((2019, 5, 29, 15, 14, 15, 0, -1, -1))
+c.datetime = time.struct_time((2022, 6, 12, 22, 25, 0, 0, -1, -1))
 
 # User defined message types start at 128
-REQUEST_DATA = 128
-SENT_DATA = 129
-SENT_HR_TENS = 130
-SENT_HR_ONES = 131
-SENT_MIN_TENS = 132
-SENT_MIN_ONES = 133
-SENT_MONTH_TENS = 134
-SENT_MONTH_ONES = 135
-SENT_DAY_TENS = 136
-SENT_DAY_ONES = 137
+SENT_MODE = 128
+SENT_TIME = 129
+INPUT_HR = 130
+INPUT_MIN = 131
+
 
 #init stuff for the displays
 from adafruit_is31fl3731.matrix import Matrix as Display
-#define the I2C buses
+#define the I2C buses & GPIO pinouts
 I2C1 = busio.I2C(board.GP19, board.GP18)
 I2C2 = busio.I2C(board.GP17, board.GP16)
+
+mode_button = DigitalInOut(board.GP1)
+mode_button.switch_to_input(pull=Pull.DOWN)
+
+hr_button = DigitalInOut(board.GP5)
+hr_button.switch_to_input(pull=Pull.DOWN)
+
+min_button = DigitalInOut(board.GP14)
+min_button.switch_to_input(pull=Pull.DOWN)
 
 def DisplayTask(self):
     # Four matrices on each bus, for a total of eight...
@@ -60,32 +65,17 @@ def DisplayTask(self):
         for msg in msgs:
 
             ### Handle messages by adding elifs to this
-            if msg.type == pyRTOS.QUIT:  # This allows you to
-                                         # terminate a thread.
-                                         # This condition may be removed if
-                                         # the thread should never terminate.
-
-                ### Tear down code here
-                print("Terminating task:", self.name)
-                print("Terminated by:", msg.source)
-
-                ### End of Tear down code
-                return
-            
-            elif msg.type == REQUEST_DATA: # Example message, using user
-                                           # message types
-                self.send(pyRTOS.Message(SENT_DATA,
-                                         self,
-                                         msg.source,
-                                         "This is data"))
-            elif msg.type == SENT_HR_TENS:
-                text[0] = msg.message
-            elif msg.type == SENT_HR_ONES:
-                text[1] = msg.message
-            elif msg.type == SENT_MIN_TENS:
-                text[2] = msg.message
-            elif msg.type == SENT_MIN_ONES:
-                text[3] = msg.message
+            if msg.type == SENT_TIME:
+                inTime = msg.message
+                
+                text[0] = inTime[0]
+                text[1] = inTime[1]
+                text[2] = inTime[2]
+                text[3] = inTime[3]
+                text[4] = inTime[4]
+                text[5] = inTime[5]
+                text[6] = inTime[6]
+                text[7] = inTime[7]
                 
         ### End Message Handler
         
@@ -149,15 +139,45 @@ def get_tens(num): #simple function used in the later TimeTask thread to get the
 
 def TimeTask(self):
     
-    hourOffset = 0
-    minOffset = 0
-    dayOffset = 0
-    monthOffset = 0
+    
+    mode = 0
     
     yield
     
     while True:
         currTime = c.datetime
+        msgs = self.recv()
+        for msg in msgs:
+            if msg.type == SENT_MODE:
+                mode = msg.message
+                
+            elif (msg.type == INPUT_HR and mode == 0):
+                if(c.datetime.tm_hour < 23):
+                    newHour = currTime.tm_hour + 1
+                    c.datetime = time.struct_time((currTime.tm_year, currTime.tm_mon, currTime.tm_mday, newHour, currTime.tm_min, currTime.tm_sec, 0, -1, -1))
+                else:
+                    c.datetime = time.struct_time((currTime.tm_year, currTime.tm_mon, currTime.tm_mday, 0, currTime.tm_min, currTime.tm_sec, 0, -1, -1))
+                    
+            elif (msg.type == INPUT_HR and mode == 1):
+                if(c.datetime.tm_hour < 11):
+                    newMonth = currTime.tm_mon + 1
+                    c.datetime = time.struct_time((currTime.tm_year, newMonth, currTime.tm_mday, currTime.tm_hour, currTime.tm_min, currTime.tm_sec, 0, -1, -1))
+                else:
+                    c.datetime = time.struct_time((currTime.tm_year, 1, currTime.tm_mday, 0, currTime.tm_min, currTime.tm_sec, 0, -1, -1))
+                    
+            elif (msg.type == INPUT_MIN and mode == 0):
+                if(c.datetime.tm_min < 59):
+                    newMin = currTime.tm_min + 1
+                    c.datetime = time.struct_time((currTime.tm_year, currTime.tm_mon, currTime.tm_mday, currTime.tm_hour, newMin, currTime.tm_sec, 0, -1, -1))
+                else:
+                    c.datetime = time.struct_time((currTime.tm_year, currTime.tm_mon, currTime.tm_mday, currTime.tm_hour, 0, currTime.tm_sec, 0, -1, -1))
+                    
+            elif (msg.type == INPUT_MIN and mode == 0):
+                if(c.datetime.day < 30 ):
+                    newDay = currTime.tm_mday + 1
+                    c.datetime = time.struct_time((currTime.tm_year, currTime.tm_mon, newDay, currTime.tm_hour, currTime.tm_min, currTime.tm_sec, 0, -1, -1))
+                else:
+                    c.datetime = time.struct_time((currTime.tm_year, currTime.tm_mon, 1, currTime.tm_hour, currTime.tm_min, currTime.tm_sec, 0, -1, -1))  
         
         month = currTime.tm_mon
         day = currTime.tm_mday
@@ -171,24 +191,103 @@ def TimeTask(self):
         else:
             hourtens = 0
             hourones = hour
-        if(sec >= 10):
-            mintens = get_tens(sec)[1]
-            minones = get_tens(sec)[0]
+        if(minute >= 10):
+            mintens = get_tens(minute)[1]
+            minones = get_tens(minute)[0]
         else:
             mintens = 0
-            minones = sec
+            minones = minute
+        if(day >= 10):
+            daytens = get_tens(day)[1]
+            dayones = get_tens(day)[0]
+        else:
+            daytens = 0
+            dayones = day
+        if(month == 1):
+            montens = "J"
+            monones = "A"
+        elif(month == 2):
+            montens = "F"
+            monones = "E"    
+        elif(month == 3):
+            montens = "M"
+            monones = "R"
+        elif(month == 4):
+            montens = "A"
+            monones = "P"
+        elif(month == 5):
+            montens = "M"
+            monones = "Y"
+        elif(month == 6):
+            montens = "J"
+            monones = "E"
+        elif(month == 7):
+            montens = "J"
+            monones = "L"
+        elif(month == 8):
+            montens = "A"
+            monones = "U"
+        elif(month == 9):
+            montens = "S"
+            monones = "E"
+        elif(month == 10):
+            montens = "O"
+            monones = "C"
+        elif(month == 11):
+            montens = "N"
+            monones = "O"
+        elif(month == 12):
+            montens = "D"
+            monones = "E"
         
-        self.send(pyRTOS.Message(SENT_HR_TENS, self, "display_task", str(hourtens)))
-        self.send(pyRTOS.Message(SENT_HR_ONES, self, "display_task", str(hourones)))
-        self.send(pyRTOS.Message(SENT_MIN_TENS, self, "display_task", str(mintens)))
-        self.send(pyRTOS.Message(SENT_MIN_ONES, self, "display_task", str(minones)))
+        finalTime = [str(hourtens), str(hourones), str(mintens), str(minones), montens, monones, str(daytens), str(dayones)]  #save time strings in single list to reduce message overhead
+        
+        #send current time to diplay via message
+        
+        self.send(pyRTOS.Message(SENT_TIME, self, "display_task", finalTime))
         
         yield [pyRTOS.timeout(0.01)]
 
-
+def ButtonTask(self):
+    
+    mode = 0
+    prev_mode = 0
+    hr_in = 0
+    prev_hr_in = 0
+    min_in = 0
+    prev_min_in = 0
+    
+    yield
+    
+    while True:
+        
+        
+        if(mode_button.value and prev_mode == False):
+            mode = not mode
+        prev_mode = mode_button.value
+        
+        if(hr_button.value == 1):
+            hr_in = not hr_in
+        #prev_hr_in = hr_button
+        
+        if(min_button.value == 1):
+            min_in = not min_in
+        #prev_min_in = hr_button
+        
+        self.send(pyRTOS.Message(SENT_MODE, self, "time_task", mode))
+        
+        if(hr_in):
+            self.send(pyRTOS.Message(INPUT_HR, self, "time_task", hr_in))
+        if(min_in):
+            self.send(pyRTOS.Message(INPUT_MIN, self, "time_task", min_in))
+        
+        #print(mode_button.value)
+        
+        yield [pyRTOS.timeout(0.1)]
 
 pyRTOS.add_task(pyRTOS.Task(DisplayTask, name="display_task", mailbox=True))
 pyRTOS.add_task(pyRTOS.Task(TimeTask, name="time_task", mailbox=True))
+pyRTOS.add_task(pyRTOS.Task(ButtonTask, name="button_task", mailbox=True))
 #pyRTOS.add_service_routine(lambda: print("Service Routine Executing"))
 pyRTOS.start()
 
