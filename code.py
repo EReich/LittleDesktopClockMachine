@@ -262,10 +262,18 @@ def ButtonTask(self):
     while True:
         
         
-        if(mode_button.value and prev_mode == False):
-            mode = not mode
+        if(mode_button.value and prev_mode == 0):
+            mode = 1
         prev_mode = mode_button.value
         
+        elif(mode_button.value and prev_mode == 1):
+            mode = 2
+        prev_mode = mode_button.value
+
+        elif(mode_button.value and prev_mode == 2):
+            mode = 0
+        prev_mode = mode_button.value
+
         if(hr_button.value == 1):
             hr_in = not hr_in
         #prev_hr_in = hr_button
