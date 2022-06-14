@@ -150,6 +150,8 @@ def TimeTask(self):
         for msg in msgs:
             if msg.type == SENT_MODE:
                 mode = msg.message
+                print("new mode accepted:")
+                print(mode)
                 
             elif (msg.type == INPUT_HR and mode == 0):
                 if(c.datetime.tm_hour < 23):
@@ -262,28 +264,37 @@ def ButtonTask(self):
     while True:
         
         
-        if(mode_button.value and prev_mode == False):
-            mode = not mode
+        if(mode_button.value and prev_mode == 0 and mode == 0):
+            mode = 1
+            print(mode)
+            self.send(pyRTOS.Message(SENT_MODE, self, "time_task", mode))
+        elif(mode_button.value and prev_mode == 0 and mode == 1):
+            mode = 2
+            print(mode)
+            self.send(pyRTOS.Message(SENT_MODE, self, "time_task", mode))
+        elif(mode_button.value and prev_mode == 0 and mode == 2):
+            mode = 0
+            print(mode)
+            self.send(pyRTOS.Message(SENT_MODE, self, "time_task", mode))
         prev_mode = mode_button.value
         
-        if(hr_button.value == 1):
-            hr_in = not hr_in
-        #prev_hr_in = hr_button
-        
-        if(min_button.value == 1):
-            min_in = not min_in
-        #prev_min_in = hr_button
-        
-        self.send(pyRTOS.Message(SENT_MODE, self, "time_task", mode))
-        
-        if(hr_in):
+        if(hr_button.value and prev_hr_in == 0):
+            print("hour button caught, sending message")
             self.send(pyRTOS.Message(INPUT_HR, self, "time_task", hr_in))
-        if(min_in):
+        prev_hr_in = hr_button.value
+        
+        if(min_button.value and prev_min_in == 0):
+            print("minute button caught, sending message")
             self.send(pyRTOS.Message(INPUT_MIN, self, "time_task", min_in))
+        prev_min_in = hr_button.value
         
-        #print(mode_button.value)
         
-        yield [pyRTOS.timeout(0.1)]
+        
+            
+        
+        
+        
+        yield [pyRTOS.timeout(0.01)]
 
 pyRTOS.add_task(pyRTOS.Task(DisplayTask, name="display_task", mailbox=True))
 pyRTOS.add_task(pyRTOS.Task(TimeTask, name="time_task", mailbox=True))
