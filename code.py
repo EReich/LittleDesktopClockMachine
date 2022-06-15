@@ -86,7 +86,7 @@ def DisplayTask(self):
         ### End Mailbox
         
         #MODE 2 BLOCK USING AN IF
-        if(mode == 2)
+        if(mode == 2):
             IMAGE = FakePILImage()  # Instantiate fake PIL image object
             FRAME_INDEX = 0  # Double-buffering frame index
 
@@ -107,7 +107,7 @@ def DisplayTask(self):
                 FRAME_INDEX ^= 1  # Swap buffers
         
         #MODE 0 AND 1 BLOCK USING AN ELSE
-        else
+        else:
             for disp in DISPLAY:
                 fb.fill(0)
                 if(disp == DISPLAY[0]):
