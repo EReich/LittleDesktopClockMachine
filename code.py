@@ -11,7 +11,7 @@ c = rtc.RTC()
 c.datetime = time.struct_time((2022, 1, 1, 0, 0, 0, 0, -1, -1))
 
 # User defined message types start at 128
-SENT_MODE = 128 #MATT THIS IS THE MESSAGE TYPE YOU SHOULD USE TO SWITCH MODES
+SENT_MODE = 128 #THIS IS THE MESSAGE TYPE YOU SHOULD USE TO SWITCH MODES
 SENT_TIME = 129
 INPUT_HR = 130
 INPUT_MIN = 131
@@ -34,7 +34,8 @@ min_button.switch_to_input(pull=Pull.DOWN)
 
 def DisplayTask(self):
     #start with init code
-    #MATT THIS IS WHERE YOU NEED TO DEFINE AN INITIAL MODE 0 THAT YOU CHANGE WITH THE MODE CHANGE LATER
+    #DEFINE AN INITIAL MODE 0 THAT CHANGES WITH THE MODE CHANGE LATER
+    mode = 0
     
     # Four matrices on each bus, for a total of eight display definitions
     DISPLAY = [
@@ -68,7 +69,8 @@ def DisplayTask(self):
         for msg in msgs:   #loop through them
 
             ### Handle other messages by adding elifs to this
-            # MATT THIS IS WHERE YOU RECIEVE WHAT THE MODE IS, ADD A MODE VAR TO THE INIT AND RECIEVE IT HERE
+            #RECIEVE WHAT THE MODE IS
+            mode = self.recv()
             if msg.type == SENT_TIME:
                 inTime = msg.message
                 
@@ -83,59 +85,78 @@ def DisplayTask(self):
                 
         ### End Mailbox
         
-        #MATT THIS IS WHERE THE MODE 2 BLOCK SHOULD BE USING AN IF
-        
-        
-        #MATT THIS IS WHERE THE MODE 0 AND 1 BLOCK SHOULD START USING AN ELSE
-        for disp in DISPLAY:
-            fb.fill(0)
-            if(disp == DISPLAY[0]):
-                text_to_show = text[0]
-                xpos = 2
-            elif(disp == DISPLAY[1]):
-                text_to_show = text[1]
-                xpos = 2
-            elif(disp == DISPLAY[2]):
-                text_to_show = text[2]
-                xpos = 2
-            elif(disp == DISPLAY[3]):
-                text_to_show = text[3]
-                xpos = 2
-            elif(disp == DISPLAY[4]):
-                text_to_show = text[4]
-                xpos = 2
-            elif(disp == DISPLAY[5]):
-                text_to_show = text[5]
-                xpos = 2
-            elif(disp == DISPLAY[6]):
-                text_to_show = text[6]
-                xpos = 2
-            elif(disp == DISPLAY[7]):
-                text_to_show = text[7]
-                xpos = 2
-            fb.text(text_to_show, xpos, 4, color=1)
+        #MODE 2 BLOCK USING AN IF
+        if(mode == 2)
+            IMAGE = FakePILImage()  # Instantiate fake PIL image object
+            FRAME_INDEX = 0  # Double-buffering frame index
 
-            # to improve the display flicker we can use two frame
-            # fill the next frame with scrolling text, then
-            # show it.
-            disp.frame(frame, show=False)
-            # turn all LEDs off
-            disp.fill(0)
-            for x in range(disp.width):
-                # using the FrameBuffer text result
-                bite = buf[x]
-                for y in range(disp.height):
-                    bit = 1 << y & bite
-                    # if bit > 0 then set the pixel brightness
-                    if bit:
-                        disp.pixel(x, y, 50)
+            while True:
+                # Draw to each display's "back" frame buffer
+                for disp in DISPLAY:
+                    for pixel in range(0, 16 * 9):  # Randomize each pixel
+                        IMAGE.pixels[pixel] = BRIGHTNESS if random.randint(1, 100) <= PERCENT else 0
+                    # Here's the function that we're NOT supposed to call in
+                    # CircuitPython, but is still present. This writes the pixel
+                    # data to the display's back buffer. Pass along our "fake" PIL
+                    # image and it accepts it.
+                    disp.image(IMAGE, frame=FRAME_INDEX)
+
+                # Then quickly flip all matrix display buffers to FRAME_INDEX
+                for disp in DISPLAY:
+                    disp.frame(FRAME_INDEX, show=True)
+                FRAME_INDEX ^= 1  # Swap buffers
         
-        for disp in DISPLAY:
-            # now that the frame is filled, show it.
-            disp.frame(frame, show=True)
-        frame = 0 if frame else 1
+        #MODE 0 AND 1 BLOCK USING AN ELSE
+        else
+            for disp in DISPLAY:
+                fb.fill(0)
+                if(disp == DISPLAY[0]):
+                    text_to_show = text[0]
+                    xpos = 2
+                elif(disp == DISPLAY[1]):
+                    text_to_show = text[1]
+                    xpos = 2
+                elif(disp == DISPLAY[2]):
+                    text_to_show = text[2]
+                    xpos = 2
+                elif(disp == DISPLAY[3]):
+                    text_to_show = text[3]
+                    xpos = 2
+                elif(disp == DISPLAY[4]):
+                    text_to_show = text[4]
+                    xpos = 2
+                elif(disp == DISPLAY[5]):
+                    text_to_show = text[5]
+                    xpos = 2
+                elif(disp == DISPLAY[6]):
+                    text_to_show = text[6]
+                    xpos = 2
+                elif(disp == DISPLAY[7]):
+                    text_to_show = text[7]
+                    xpos = 2
+                fb.text(text_to_show, xpos, 4, color=1)
+
+                # to improve the display flicker we can use two frame
+                # fill the next frame with scrolling text, then
+                # show it.
+                disp.frame(frame, show=False)
+                # turn all LEDs off
+                disp.fill(0)
+                for x in range(disp.width):
+                    # using the FrameBuffer text result
+                    bite = buf[x]
+                    for y in range(disp.height):
+                        bit = 1 << y & bite
+                        # if bit > 0 then set the pixel brightness
+                        if bit:
+                            disp.pixel(x, y, 50)
+
+            for disp in DISPLAY:
+                # now that the frame is filled, show it.
+                disp.frame(frame, show=True)
+            frame = 0 if frame else 1
         
-        #MATT DONT INCLUDE THIS IN THE IF BLOCK IT NEEDS TO BE AVAILABLE EVERY LOOP OR ELSE EVERYTHING DIES
+        # DONT INCLUDE THIS IN THE IF BLOCK IT NEEDS TO BE AVAILABLE EVERY LOOP OR ELSE EVERYTHING DIES
         yield [pyRTOS.timeout(0.01)] 
 
 def get_tens(num): #simple function used in the later TimeTask thread to get the 10's place of numbers for output
@@ -285,17 +306,17 @@ def ButtonTask(self):
             mode = 1 #if so, change the mode to the next mode in the system
             print(mode)
             self.send(pyRTOS.Message(SENT_MODE, self, "time_task", mode))  #send that mode as a message to the time thread
-            #----------------------------------------------------------------------------------------------------------------
-            #MATT! ADD ANOTHER MODE MESSAGE HERE FOR THE DISPLAY THREAD AND ALSO TO THE OTHER MODE MESSAGES IN THIS BLOCK THEN DELETE THIS COMMENT
-            #----------------------------------------------------------------------------------------------------------------
+            self.send(pyRTOS.Message(SENT_MODE, self, "display_task", mode)) #send that mode as a message to the display thread
         elif(mode_button.value and prev_mode == 0 and mode == 1):
             mode = 2
             print(mode)
             self.send(pyRTOS.Message(SENT_MODE, self, "time_task", mode))
+            self.send(pyRTOS.Message(SENT_MODE, self, "display_task", mode)) #send that mode as a message to the display thread
         elif(mode_button.value and prev_mode == 0 and mode == 2):
             mode = 0
             print(mode)
             self.send(pyRTOS.Message(SENT_MODE, self, "time_task", mode))
+            self.send(pyRTOS.Message(SENT_MODE, self, "display_task", mode)) #send that mode as a message to the display thread
         prev_mode = mode_button.value
         
         #The next two control the other buttons 
