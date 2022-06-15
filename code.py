@@ -11,7 +11,7 @@ c = rtc.RTC()
 c.datetime = time.struct_time((2022, 1, 1, 0, 0, 0, 0, -1, -1))
 
 # User defined message types start at 128
-SENT_MODE = 128
+SENT_MODE = 128 #MATT THIS IS THE MESSAGE TYPE YOU SHOULD USE TO SWITCH MODES
 SENT_TIME = 129
 INPUT_HR = 130
 INPUT_MIN = 131
@@ -34,6 +34,7 @@ min_button.switch_to_input(pull=Pull.DOWN)
 
 def DisplayTask(self):
     #start with init code
+    #MATT THIS IS WHERE YOU NEED TO DEFINE AN INITIAL MODE 0 THAT YOU CHANGE WITH THE MODE CHANGE LATER
     
     # Four matrices on each bus, for a total of eight display definitions
     DISPLAY = [
@@ -308,13 +309,8 @@ def ButtonTask(self):
             self.send(pyRTOS.Message(INPUT_MIN, self, "time_task", min_in))
         prev_min_in = hr_button.value
         
-        
-        
-            
-        
-        
-        
         yield [pyRTOS.timeout(0.01)]
+#end of thread code, now to initialize the tasks and start the RTOS
 
 pyRTOS.add_task(pyRTOS.Task(DisplayTask, name="display_task", mailbox=True))
 pyRTOS.add_task(pyRTOS.Task(TimeTask, name="time_task", mailbox=True))
