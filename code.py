@@ -1,3 +1,6 @@
+#LittleDesktopClockMachine, a pyRTOS based real-time-clock application designed to work with the LittleDektopConnectionMachine build from Adafruit.
+#Created by Erik Reich, Matthew Muller, and Maxwell Nguyen 
+
 import board
 import busio
 from digitalio import DigitalInOut, Direction, Pull
@@ -57,7 +60,9 @@ class FakePILImage: #used in the blinky lights portion of the code
         """IS31 lib requests image pixels this way, more dirty pool."""
         return self.pixels
 
-
+#___________________________________________________________________________________________________________________________________
+#Display task is the thread that handles sending the actual pixels to the displays. Has two internal modes, clock and blinkylights
+#___________________________________________________________________________________________________________________________________
 
 def DisplayTask(self):
     #start with init code
