@@ -70,7 +70,7 @@ def DisplayTask(self):
 
             ### Handle other messages by adding elifs to this
             #RECIEVE WHAT THE MODE IS
-            mode = self.recv()
+            
             if msg.type == SENT_TIME:
                 inTime = msg.message
                 
@@ -82,7 +82,8 @@ def DisplayTask(self):
                 text[5] = inTime[5]
                 text[6] = inTime[6]
                 text[7] = inTime[7]
-                
+            elif msg.type == SENT_MODE:
+                mode == msg.mode
         ### End Mailbox
         
         #MODE 2 BLOCK USING AN IF
