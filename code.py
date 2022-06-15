@@ -8,7 +8,7 @@ import time
 
 
 c = rtc.RTC()
-c.datetime = time.struct_time((2022, 6, 12, 22, 25, 0, 0, -1, -1))
+c.datetime = time.struct_time((2022, 1, 1, 0, 0, 0, 0, -1, -1))
 
 # User defined message types start at 128
 SENT_MODE = 128
@@ -45,7 +45,7 @@ def DisplayTask(self):
         Display(I2C2, address=0x77, frames=(0, 1)),
     ]
 
-    text = ["1", "2", "2","5","J","N", "1", "2"]
+    text = ["0", "0", "0","0","N","N", "0", "0"]
 
     # Create a framebuffer for our display
     buf = bytearray(32)  # 2 bytes tall x 16 wide = 32 bytes (9 bits is 2 bytes)
@@ -128,7 +128,7 @@ def DisplayTask(self):
             disp.frame(frame, show=True)
         frame = 0 if frame else 1
         
-        yield [pyRTOS.timeout(0.01)]
+        yield [pyRTOS.timeout(0.01)] #reduce Cycle load by reducing update rate to 30fps
 
 def get_tens(num): #simple function used in the later TimeTask thread to get the 10's place of numbers for output
     pos_nums = []
@@ -174,8 +174,8 @@ def TimeTask(self):
                 else:
                     c.datetime = time.struct_time((currTime.tm_year, currTime.tm_mon, currTime.tm_mday, currTime.tm_hour, 0, currTime.tm_sec, 0, -1, -1))
                     
-            elif (msg.type == INPUT_MIN and mode == 0):
-                if(c.datetime.day < 30 ):
+            elif (msg.type == INPUT_MIN and mode == 1):
+                if(c.datetime.tm_mday < 30 ):
                     newDay = currTime.tm_mday + 1
                     c.datetime = time.struct_time((currTime.tm_year, currTime.tm_mon, newDay, currTime.tm_hour, currTime.tm_min, currTime.tm_sec, 0, -1, -1))
                 else:
@@ -222,7 +222,7 @@ def TimeTask(self):
             monones = "Y"
         elif(month == 6):
             montens = "J"
-            monones = "E"
+            monones = "N"
         elif(month == 7):
             montens = "J"
             monones = "L"
