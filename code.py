@@ -59,76 +59,97 @@ def DisplayTask(self):
     
     yield  #initial yield
     
-    while True:
-        # Check messages
-        msgs = self.recv()
-        for msg in msgs:
+    if(mode == 2)
+        IMAGE = FakePILImage()  # Instantiate fake PIL image object
+        FRAME_INDEX = 0  # Double-buffering frame index
 
-            ### Handle messages by adding elifs to this
-            if msg.type == SENT_TIME:
-                inTime = msg.message
-                
-                text[0] = inTime[0]
-                text[1] = inTime[1]
-                text[2] = inTime[2]
-                text[3] = inTime[3]
-                text[4] = inTime[4]
-                text[5] = inTime[5]
-                text[6] = inTime[6]
-                text[7] = inTime[7]
-                
-        ### End Message Handler
-        
-        
-        for disp in DISPLAY:
-            fb.fill(0)
-            if(disp == DISPLAY[0]):
-                text_to_show = text[0]
-                xpos = 2
-            elif(disp == DISPLAY[1]):
-                text_to_show = text[1]
-                xpos = 2
-            elif(disp == DISPLAY[2]):
-                text_to_show = text[2]
-                xpos = 2
-            elif(disp == DISPLAY[3]):
-                text_to_show = text[3]
-                xpos = 2
-            elif(disp == DISPLAY[4]):
-                text_to_show = text[4]
-                xpos = 2
-            elif(disp == DISPLAY[5]):
-                text_to_show = text[5]
-                xpos = 2
-            elif(disp == DISPLAY[6]):
-                text_to_show = text[6]
-                xpos = 2
-            elif(disp == DISPLAY[7]):
-                text_to_show = text[7]
-                xpos = 2
-            fb.text(text_to_show, xpos, 4, color=1)
+        while True:
+        # Draw to each display's "back" frame buffer
+            for disp in DISPLAY:
+                for pixel in range(0, 16 * 9):  # Randomize each pixel
+                    IMAGE.pixels[pixel] = BRIGHTNESS if random.randint(1, 100) <= PERCENT else 0
+                # Here's the function that we're NOT supposed to call in
+                # CircuitPython, but is still present. This writes the pixel
+                # data to the display's back buffer. Pass along our "fake" PIL
+                # image and it accepts it.
+                disp.image(IMAGE, frame=FRAME_INDEX)
 
-            # to improve the display flicker we can use two frame
-            # fill the next frame with scrolling text, then
-            # show it.
-            disp.frame(frame, show=False)
-            # turn all LEDs off
-            disp.fill(0)
-            for x in range(disp.width):
-                # using the FrameBuffer text result
-                bite = buf[x]
-                for y in range(disp.height):
-                    bit = 1 << y & bite
-                    # if bit > 0 then set the pixel brightness
-                    if bit:
-                        disp.pixel(x, y, 50)
-        
-        for disp in DISPLAY:
-            # now that the frame is filled, show it.
-            disp.frame(frame, show=True)
-        frame = 0 if frame else 1
-        
-        yield [pyRTOS.timeout(0.01)] #reduce Cycle load by reducing update rate to 30fps
+            # Then quickly flip all matrix display buffers to FRAME_INDEX
+            for disp in DISPLAY:
+                disp.frame(FRAME_INDEX, show=True)
+            FRAME_INDEX ^= 1  # Swap buffers
+
+    elif(mode == 1)
+        while True:
+            # Check messages
+            msgs = self.recv()
+            for msg in msgs:
+
+                ### Handle messages by adding elifs to this
+                if msg.type == SENT_TIME:
+                    inTime = msg.message
+
+                    text[0] = inTime[0]
+                    text[1] = inTime[1]
+                    text[2] = inTime[2]
+                    text[3] = inTime[3]
+                    text[4] = inTime[4]
+                    text[5] = inTime[5]
+                    text[6] = inTime[6]
+                    text[7] = inTime[7]
+
+            ### End Message Handler
+
+
+            for disp in DISPLAY:
+                fb.fill(0)
+                if(disp == DISPLAY[0]):
+                    text_to_show = text[0]
+                    xpos = 2
+                elif(disp == DISPLAY[1]):
+                    text_to_show = text[1]
+                    xpos = 2
+                elif(disp == DISPLAY[2]):
+                    text_to_show = text[2]
+                    xpos = 2
+                elif(disp == DISPLAY[3]):
+                    text_to_show = text[3]
+                    xpos = 2
+                elif(disp == DISPLAY[4]):
+                    text_to_show = text[4]
+                    xpos = 2
+                elif(disp == DISPLAY[5]):
+                    text_to_show = text[5]
+                    xpos = 2
+                elif(disp == DISPLAY[6]):
+                    text_to_show = text[6]
+                    xpos = 2
+                elif(disp == DISPLAY[7]):
+                    text_to_show = text[7]
+                    xpos = 2
+                fb.text(text_to_show, xpos, 4, color=1)
+
+                # to improve the display flicker we can use two frame
+                # fill the next frame with scrolling text, then
+                # show it.
+                disp.frame(frame, show=False)
+                # turn all LEDs off
+                disp.fill(0)
+                for x in range(disp.width):
+                    # using the FrameBuffer text result
+                    bite = buf[x]
+                    for y in range(disp.height):
+                        bit = 1 << y & bite
+                        # if bit > 0 then set the pixel brightness
+                        if bit:
+                            disp.pixel(x, y, 50)
+
+            for disp in DISPLAY:
+                # now that the frame is filled, show it.
+                disp.frame(frame, show=True)
+            frame = 0 if frame else 1
+
+            yield [pyRTOS.timeout(0.01)] #reduce Cycle load by reducing update rate to 30fps
 
 def get_tens(num): #simple function used in the later TimeTask thread to get the 10's place of numbers for output
     pos_nums = []
