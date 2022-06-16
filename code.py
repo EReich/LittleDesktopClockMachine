@@ -138,6 +138,8 @@ def DisplayTask(self):
             for disp in DISPLAY:
                 disp.frame(FRAME_INDEX, show=True)
             FRAME_INDEX ^= 1  # Swap buffers
+            
+            yield [pyRTOS.timeout(0.001)] #use a shorter yield timeout while in mode 2 as this directly effects the refresh rate of the blinks
         
         #MODE 0 AND 1 BLOCK USING AN ELSE
         else:
@@ -190,7 +192,7 @@ def DisplayTask(self):
             frame = 0 if frame else 1
         
         
-        yield [pyRTOS.timeout(0.001)] 
+            yield [pyRTOS.timeout(0.01)] 
 
 def get_tens(num): #simple function used in the later TimeTask thread to get the 10's place of numbers for output
     pos_nums = []
